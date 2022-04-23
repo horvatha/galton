@@ -1,8 +1,11 @@
 from collections import Counter
+from typing import Callable
 from matplotlib import pyplot as plt
 from matplotlib.ticker import PercentFormatter
 from pandas import Series
-from random import randint
+import random
+
+RandomFactory = Callable[[], Callable[[int, int], int]]
 
 
 class Galton:
@@ -19,7 +22,13 @@ class Galton:
     results in a bin position outside the board, the bead is bounced back into
     the board by one full bin unit.
     """
-    def __init__(self, row_pairs: int, bins: int):
+    def __init__(
+            self,
+            row_pairs: int,
+            bins: int, *,
+            random_position_factory: RandomFactory = lambda: random.randint,
+            random_direction_factory: RandomFactory = lambda: random.randint
+    ):
         """
         Initialize a Galton board with the specified number of row pairs and bins.
 
@@ -32,6 +41,8 @@ class Galton:
         """
         self.bins = bins
         self.rows = row_pairs * 2
+        self.random_position = random_position_factory()
+        self.random_direction = random_direction_factory()
 
     def is_valid(self, position: float) -> bool:
         """
@@ -66,7 +77,7 @@ class Galton:
             The new position of the bead after passing a row (in bin units,
             including half-bins)
         """
-        d = -0.5 if randint(0, 1) else 0.5
+        d = -0.5 if self.random_direction(0, 1) else 0.5
         position += d
         if not self.is_valid(position):
             position -= d * 2
@@ -87,7 +98,7 @@ class Galton:
         position: int
             The bin in which the bead ends up after running through the board
         """
-        position = start or randint(1, self.bins)
+        position = start or self.random_position(1, self.bins)
         if not self.is_valid(position):
             raise ValueError("Bin position out of range")
         for _ in range(self.rows):
@@ -124,7 +135,6 @@ class Galton:
         plt.xticks(rotation=0)
         plt.gca().yaxis.set_major_formatter(PercentFormatter())
         plt.show()
-
 
 # Simulate a classic Galton board in which all beads are released at the
 # midpoint of the board:
