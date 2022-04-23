@@ -1,11 +1,13 @@
 from collections import Counter
+from fractions import Fraction
 from typing import Callable
 from matplotlib import pyplot as plt
 from matplotlib.ticker import PercentFormatter
 from pandas import Series
 import random
 
-RandomFactory = Callable[[], Callable[[int, int], int]]
+RandomBinFunction = Callable[[int, int], int]
+RandomDirectionFunction = Callable[[], Fraction]
 
 
 class Galton:
@@ -26,8 +28,8 @@ class Galton:
             self,
             row_pairs: int,
             bins: int, *,
-            random_position_factory: RandomFactory = lambda: random.randint,
-            random_direction_factory: RandomFactory = lambda: random.randint
+            random_bin: RandomBinFunction = lambda bins: random.randint(1, bins),
+            random_direction: RandomDirectionFunction = lambda: random.choice([Fraction(1, 2), Fraction(-1, 2)])
     ):
         """
         Initialize a Galton board with the specified number of row pairs and bins.
@@ -41,8 +43,8 @@ class Galton:
         """
         self.bins = bins
         self.rows = row_pairs * 2
-        self.random_position = random_position_factory()
-        self.random_direction = random_direction_factory()
+        self.random_bin = random_bin
+        self.random_direction = random_direction
 
     def is_valid(self, position: float) -> bool:
         """
@@ -77,7 +79,7 @@ class Galton:
             The new position of the bead after passing a row (in bin units,
             including half-bins)
         """
-        d = -0.5 if self.random_direction(0, 1) else 0.5
+        d = self.random_direction()
         position += d
         if not self.is_valid(position):
             position -= d * 2
@@ -98,14 +100,14 @@ class Galton:
         position: int
             The bin in which the bead ends up after running through the board
         """
-        position = start or self.random_position(1, self.bins)
+        position = start or self.random_bin(self.bins)
         if not self.is_valid(position):
             raise ValueError("Bin position out of range")
         for _ in range(self.rows):
             position = self.move_down(position)
         return int(position)
 
-    def simulate(self, beads: int, start=None) -> None:
+    def simulate(self, beads: int, start=None) -> Counter:
         """
         Show the histogram of results for a specified number of beads on the
         board.
@@ -123,23 +125,34 @@ class Galton:
             starting bin position of each bead will be randomly chosen from the
             possible bin positions of the board.
         """
-        count = Counter(self.run_bead(start) for _ in range(beads))
+        return Counter(self.run_bead(start) for _ in range(beads))
 
-        (Series(count).sort_index()
-                      .mul(100)
-                      .div(beads)
-                      .plot(kind="bar",
-                            xlabel="Bins",
-                            ylabel="Relative frequency"))
 
-        plt.xticks(rotation=0)
-        plt.gca().yaxis.set_major_formatter(PercentFormatter())
-        plt.show()
+def bar_plot_counter(count: Counter):
+    """
+    Show the histogram of results for a specified number of beads on the
+    board.
+    """
+    (Series(count)
+     .sort_index()
+     .mul(100)
+     .div(sum(count.values()))
+     .plot(kind="bar",
+           xlabel="Bins",
+           ylabel="Relative frequency"))
 
-# Simulate a classic Galton board in which all beads are released at the
-# midpoint of the board:
-Galton(row_pairs=11, bins=21).simulate(beads=100000, start=11)
+    plt.xticks(rotation=0)
+    plt.gca().yaxis.set_major_formatter(PercentFormatter())
+    plt.show()
 
-# Simulate the variant used in the YouTube show in which any starting position
-# is possible:
-Galton(row_pairs=11, bins=21).simulate(beads=100000, start=None)
+
+if __name__ == '__main__':
+
+
+    # Simulate a classic Galton board in which all beads are released at the
+    # midpoint of the board:
+    bar_plot_counter(Galton(row_pairs=11, bins=21).simulate(beads=100000, start=11))
+
+    # Simulate the variant used in the YouTube show in which any starting position
+    # is possible:
+    bar_plot_counter(Galton(row_pairs=11, bins=21).simulate(beads=100000, start=None))
