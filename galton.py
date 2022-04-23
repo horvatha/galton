@@ -107,10 +107,9 @@ class Galton:
             position = self.move_down(position)
         return int(position)
 
-    def simulate(self, beads: int, start=None) -> Counter:
+    def simulate(self, beads: int, *, start=None) -> Counter:
         """
-        Show the histogram of results for a specified number of beads on the
-        board.
+        Return the counts of the result bins.
 
         The simulation condition can be specified by specifying the `start`
         argument (see below).
