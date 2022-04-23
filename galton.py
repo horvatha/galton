@@ -131,6 +131,8 @@ def bar_plot_counter(count: Counter):
     """
     Show the histogram of results for a specified number of beads on the
     board.
+
+    Or more generally the histogram of any Counter objects, where the values are numbers.
     """
     (Series(count)
      .sort_index()
@@ -146,8 +148,6 @@ def bar_plot_counter(count: Counter):
 
 
 if __name__ == '__main__':
-
-
     # Simulate a classic Galton board in which all beads are released at the
     # midpoint of the board:
     bar_plot_counter(Galton(row_pairs=11, bins=21).simulate(beads=100000, start=11))
